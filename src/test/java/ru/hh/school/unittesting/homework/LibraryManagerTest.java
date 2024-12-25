@@ -1,4 +1,4 @@
-package ru.hh.school.unittesting.example;
+package ru.hh.school.unittesting.homework;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -14,14 +14,10 @@ import static org.mockito.Mockito.when;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.mockito.Mock;
-import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
-import ru.hh.school.unittesting.homework.LibraryManager;
-import ru.hh.school.unittesting.homework.NotificationService;
-import ru.hh.school.unittesting.homework.UserService;
 
 @ExtendWith(MockitoExtension.class)
-public class LibraryManagerTest {
+class LibraryManagerTest {
     @Mock
     private NotificationService notificationService;
     @Mock
@@ -37,8 +33,7 @@ public class LibraryManagerTest {
     @Test
     void checkingAddNewBookToInventory() {
         String bookId = "book1";
-        int initialQuantity = 5;
-        libraryManager.addBook(bookId, initialQuantity);
+        libraryManager.addBook("book1", 5);
         int availableCopies = libraryManager.getAvailableCopies(bookId);
 
         assertEquals(5, availableCopies, "Количество копий новой книги должно быть равно добавленному количеству.");
@@ -57,7 +52,8 @@ public class LibraryManagerTest {
     }
 
     @Test
-    void testBorrowBookIsActive() {
+    void testBorrowBookUserIsNotActive() {
+        when(userService.isUserActive("user1")).thenReturn(false);
         String bookId = "book1";
         String userId = "user1";
         libraryManager.addBook(bookId, 5);
@@ -91,7 +87,7 @@ public class LibraryManagerTest {
     }
 
     @Test
-    void returnBook_ShouldSucceedWhenBookIsBorrowedByUser() {
+    void testReturnBookShouldSucceedWhenBookIsBorrowedByUser() {
         String bookId = "book1";
         String userId = "user1";
         libraryManager.addBook(bookId, 1);
@@ -105,47 +101,60 @@ public class LibraryManagerTest {
     }
 
     @Test
-    void returnBook_ShouldFailWhenBookIsNotBorrowedByUser() {
-        String bookId = "book1";
-        String userId = "user1";
-        boolean success = libraryManager.returnBook(bookId, userId);
+    void testReturnBookShouldFailWhenBookIsNotBorrowedByUser() {
+        boolean success = libraryManager.returnBook("book1", "user1");
 
         assertFalse(success, "Пользователь не должен вернуть книгу, которую не брал.");
     }
 
     @Test
-    void testGetAvailableCopies() {
-        String bookId = "book1";
-        libraryManager.addBook(bookId, 5);
+    void testReturnBookShouldFailWhenBookisNoSuchBook() {
+        libraryManager.addBook("book1", 1);
+        when(userService.isUserActive("user2")).thenReturn(true);
+        libraryManager.borrowBook("book1", "user2");
+        boolean success = libraryManager.returnBook("book1", "user1");
 
-        assertEquals(5, libraryManager.getAvailableCopies(bookId));
-
+        assertFalse(success, "Пользователь не должен вернуть книгу, которую не брал.");
     }
 
     @Test
     void testCalculateDynamicLateForNonBestsellerNonPremium() {
         double fee = libraryManager.calculateDynamicLateFee(5, false, false);
 
-        assertEquals(2.5, fee, 0.01);
+        assertEquals(2.5, fee);
     }
 
     @Test
     void testCalculateDynamicLateFeeBestsellerMultiplier() {
         double fee = libraryManager.calculateDynamicLateFee(5, true, false);
 
-        assertEquals(3.75, fee, 0.01);
+        assertEquals(3.75, fee);
     }
 
     @Test
     void testCalculateDynamicLateFeePremiumDiscount() {
         double fee = libraryManager.calculateDynamicLateFee(5, false, true);
 
-        assertEquals(2.0, fee, 0.01);
+        assertEquals(2.0, fee);
+    }
+
+    @Test
+    void testCalculateDynamicLateFeePremiumDiscountBestsellerMultiplier() {
+        double fee = libraryManager.calculateDynamicLateFee(5, true, true);
+
+        assertEquals(3.0, fee);
     }
 
     @Test
     void testCalculateDynamicLateFeeThrowExceptionForNegativeDays() {
         assertThrows(IllegalArgumentException.class, () -> libraryManager.calculateDynamicLateFee(-1, false, false));
+    }
+
+    @Test
+    void testCalculateDynamicLateFeeThrowExceptionForZeroDays() {
+        double fee = libraryManager.calculateDynamicLateFee(0, false, false);
+
+        assertEquals(0, fee);
     }
 
 }

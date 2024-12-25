@@ -26,7 +26,6 @@ public class LibraryManager {
     bookInventory.put(bookId, bookInventory.getOrDefault(bookId, 0) + quantity);
   }
 
-
   public boolean borrowBook(String bookId, String userId) {
     if (!userService.isUserActive(userId)) {
       notificationService.notifyUser(userId, "Your account is not active.");
